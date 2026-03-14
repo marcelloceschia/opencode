@@ -31,10 +31,12 @@
     "@types/bun": "catalog:",
     "@types/luxon": "catalog:",
     "@types/node": "catalog:",
+    "@types/serviceworker": "0.0.193",
     "@typescript/native-preview": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-icons-spritesheet": "3.0.1",
+    "vite-plugin-pwa": "1.2.0",
     "vite-plugin-solid": "catalog:"
   },
   "dependencies": {
