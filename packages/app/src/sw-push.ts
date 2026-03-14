@@ -2,15 +2,7 @@
 // Service worker for push notifications
 // This file is processed by vite-plugin-pwa with injectManifest strategy
 
-// @ts-expect-error - Workbox types not available
 import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching"
-
-// Vite PWA injects this
-declare const __WB_MANIFEST: unknown[]
-
-// Precache all assets
-precacheAndRoute(__WB_MANIFEST)
-cleanupOutdatedCaches()
 
 // Handle push events - display notification
 self.addEventListener("push", (event: PushEvent) => {
@@ -92,5 +84,10 @@ self.addEventListener("pushsubscriptionchange", (event: Event) => {
     // TODO: Send new subscription to server via fetch
   }
 })
+
+// This is required for vite-plugin-pwa injectManifest strategy
+// @ts-expect-error - injected by vite-plugin-pwa
+precacheAndRoute(self.__WB_MANIFEST)
+cleanupOutdatedCaches()
 
 export {}
