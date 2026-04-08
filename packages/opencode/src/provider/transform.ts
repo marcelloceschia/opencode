@@ -319,12 +319,8 @@ export namespace ProviderTransform {
   export function message(msgs: ModelMessage[], model: Provider.Model, options: Record<string, unknown>) {
     msgs = unsupportedParts(msgs, model)
     msgs = normalizeMessages(msgs, model, options)
-
-    // Apply caching when:
-    // 1. Explicitly enabled via model.caching (true or object)
-    // 2. Auto-detected: Anthropic models (not gateway)
-    // 3. Auto-detected: Amazon Bedrock models that support caching (Claude, Nova)
     const isAnthropic = model.providerID === "anthropic" ||
+      model.providerID === "google-vertex-anthropic" ||
       model.api.id.includes("anthropic") ||
       model.api.id.includes("claude") ||
       model.id.includes("anthropic") ||
@@ -332,11 +328,8 @@ export namespace ProviderTransform {
       model.api.npm === "@ai-sdk/anthropic"
     const isBedrock = model.api.npm === "@ai-sdk/amazon-bedrock" || model.providerID.includes("bedrock")
     const isBedrockCacheEligible = isBedrock && (
-      // Explicit caching option (true or false via model.options.caching)
       (model.options?.caching === true) ||
-      // Explicit caching option via model.caching
       (model.caching === true) ||
-      // Auto-detect Claude/Nova models (unless caching is explicitly disabled)
       (model.options?.caching !== false && (
         model.api.id.includes("claude") ||
         model.api.id.includes("nova") ||
@@ -351,7 +344,7 @@ export namespace ProviderTransform {
 
     // Remap providerOptions keys from stored providerID to expected SDK key
     const key = sdkKey(model.api.npm)
-    if (key && key !== model.providerID && model.api.npm !== "@ai-sdk/azure") {
+    if (key && key !== model.providerID) {
       const remap = (opts: Record<string, any> | undefined) => {
         if (!opts) return opts
         if (!(model.providerID in opts)) return opts
@@ -433,8 +426,9 @@ export namespace ProviderTransform {
       id.includes("glm") ||
       id.includes("mistral") ||
       id.includes("kimi") ||
-      // TODO: Remove this after models.dev data is fixed to use "kimi-k2.5" instead of "k2p5"
-      id.includes("k2p5")
+      id.includes("k2p5") ||
+      id.includes("qwen") ||
+      id.includes("big-pickle")
     )
       return {}
 
@@ -523,9 +517,7 @@ export namespace ProviderTransform {
           return {}
         }
         if (model.id.includes("claude")) {
-          return {
-            thinking: { thinking_budget: 4000 },
-          }
+          return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
         }
         const copilotEfforts = iife(() => {
           if (id.includes("5.1-codex-max") || id.includes("5.2") || id.includes("5.3"))
@@ -994,6 +986,12 @@ export namespace ProviderTransform {
     }
 
     const key = sdkKey(model.api.npm) ?? model.providerID
+    // @ai-sdk/azure delegates to OpenAIChatLanguageModel which reads from
+    // providerOptions["openai"], but OpenAIResponsesLanguageModel checks
+    // "azure" first. Pass both so model options work on either code path.
+    if (model.api.npm === "@ai-sdk/azure") {
+      return { openai: options, azure: options }
+    }
     return { [key]: options }
   }
 
